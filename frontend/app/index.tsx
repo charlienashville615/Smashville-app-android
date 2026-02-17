@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
@@ -24,73 +24,73 @@ export default function Index() {
   }
 
   return (
-    <ImageBackground 
-      source={require('../assets/nashville-skyline.jpg')} 
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <View style={styles.overlay}>
-        <View style={styles.content}>
-          <Text style={styles.logo}>SMASHVILLE</Text>
-          <Text style={styles.subtitle}>Nashville's Electric Dating Scene</Text>
-          
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.button}
-              onPress={() => router.push('/(auth)/login')}
-            >
-              <Text style={styles.buttonText}>LOGIN</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.button, styles.buttonOutline]}
-              onPress={() => router.push('/(auth)/signup')}
-            >
-              <Text style={[styles.buttonText, styles.buttonTextOutline]}>SIGN UP</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.tagline}>"Where your mom's approval is optional"</Text>
+    <View style={styles.container}>
+      <Image
+        source={require('../assets/nashville-skyline.jpg')}
+        style={styles.skylineImage}
+        resizeMode="cover"
+      />
+
+      <View style={styles.content}>
+        <Text style={styles.logo}>SMASHVILLE</Text>
+        <Text style={styles.tagline}>"Where your mom's approval is optional"</Text>
+
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push('/(auth)/login')}
+          >
+            <Text style={styles.buttonText}>LOGIN</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.buttonOutline]}
+            onPress={() => router.push('/(auth)/signup')}
+          >
+            <Text style={[styles.buttonText, styles.buttonTextOutline]}>SIGN UP</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#000000',
   },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+  skylineImage: {
+    width: '100%',
+    height: 280,
   },
   content: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 32,
+    paddingTop: 24,
   },
   logo: {
-    fontSize: 56,
+    fontSize: 48,
     fontWeight: 'bold',
     color: '#00E5FF',
-    letterSpacing: 6,
-    marginBottom: 8,
-    textShadowColor: '#000',
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 10,
+    letterSpacing: 8,
+    textShadowColor: 'rgba(0, 229, 255, 0.3)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
   },
-  subtitle: {
-    fontSize: 18,
+  tagline: {
+    marginTop: 12,
     color: '#FFFFFF',
-    marginBottom: 60,
-    opacity: 0.9,
+    fontSize: 14,
+    opacity: 0.6,
+    fontStyle: 'italic',
     textAlign: 'center',
   },
   buttonContainer: {
     width: '100%',
     gap: 16,
+    marginTop: 48,
   },
   button: {
     backgroundColor: '#00E5FF',
@@ -112,14 +112,6 @@ const styles = StyleSheet.create({
   },
   buttonTextOutline: {
     color: '#00E5FF',
-  },
-  tagline: {
-    marginTop: 40,
-    color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.7,
-    fontStyle: 'italic',
-    textAlign: 'center',
   },
   loading: {
     flex: 1,
