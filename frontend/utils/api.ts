@@ -27,7 +27,7 @@ export const createVenue = (data: any) => api.post('/venues', data);
 // Check-ins
 export const checkIn = (data: any) => api.post('/checkins', data);
 export const getUserCheckin = (userId: string) => api.get(`/checkins/user/${userId}`);
-export const getVenueCheckins = (venueId: string) => api.get(`/checkins/venue/${venueId}`);
+export const getVenueCheckins = (venueId: string, userId?: string) => api.get(`/checkins/venue/${venueId}`, { params: userId ? { user_id: userId } : {} });
 export const checkout = (checkinId: string) => api.delete(`/checkins/${checkinId}`);
 
 // Swipes & Matches
