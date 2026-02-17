@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Login() {
   const router = useRouter();
@@ -29,13 +30,14 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={28} color="#00E5FF" />
-      </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView 
+        style={styles.keyboardView} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={28} color="#00E5FF" />
+        </TouchableOpacity>
 
       <View style={styles.content}>
         <Text style={styles.title}>WELCOME BACK</Text>
@@ -83,16 +85,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000000',
   },
+  keyboardView: {
+    flex: 1,
+  },
   backButton: {
     position: 'absolute',
-    top: 50,
+    top: 10,
     left: 20,
-    zIndex: 10,
+    zIndex: 100,
+    padding: 8,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 32,
+    paddingTop: 60,
   },
   title: {
     fontSize: 36,
