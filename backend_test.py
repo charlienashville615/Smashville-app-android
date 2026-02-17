@@ -104,7 +104,7 @@ class SmashvilleAPITester:
         
         # Test 4: Login with valid credentials
         login_data = {
-            "email": "testuser@test.com",
+            "email": f"testuser{timestamp}@test.com",
             "password": "pass123"
         }
         
