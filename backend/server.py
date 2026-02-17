@@ -42,7 +42,7 @@ class User(BaseModel):
     gender: Optional[str] = None  # "male", "female", "other"
     sexualPreference: Optional[str] = None  # "straight", "gay", "bisexual", "other"
     customPreference: Optional[str] = None  # If "other" selected
-    lookingForTonight: Optional[str] = None  # What they're looking for
+    vibeCheck: Optional[str] = None  # What they're looking for (renamed from lookingForTonight)
     bio: Optional[str] = ""
     photos: List[str] = []  # base64 images
     coverPhoto: Optional[str] = None  # base64 image
@@ -58,6 +58,8 @@ class User(BaseModel):
     isBlocked: bool = False
     timeoutUntil: Optional[datetime] = None
     emergencyPin: Optional[str] = None  # 4-digit PIN for emergency alert deactivation
+    agreedToTerms: bool = False  # Terms of Service agreement
+    termsAgreedAt: Optional[datetime] = None
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
 class SupportTicket(BaseModel):
@@ -83,6 +85,36 @@ class Flirt(BaseModel):
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
 class EmergencyContact(BaseModel):
+    id: Optional[str] = None
+    userId: str
+    name: str
+    phoneNumber: str
+    relationship: Optional[str] = ""
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class SupportTicket(BaseModel):
+    id: Optional[str] = None
+    userId: str
+    subject: str
+    message: str
+    email: str
+    status: str = "open"  # "open", "closed"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class AppSettings(BaseModel):
+    id: Optional[str] = None
+    supportEmail: Optional[str] = None  # Admin configures this
+    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+
+class Flirt(BaseModel):
+    id: Optional[str] = None
+    fromUserId: str
+    toUserId: str
+    venueId: str
+    message: Optional[str] = "sent you a flirt"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class EmergencyAlert(BaseModel):
     id: Optional[str] = None
     userId: str
     name: str
@@ -243,6 +275,10 @@ async def generate_ai_text(prompt: str) -> str:
 
 @api_router.post("/auth/signup")
 async def signup(user: User):
+    # Check Terms of Service agreement
+    if not user.agreedToTerms:
+        raise HTTPException(status_code=400, detail="You must agree to the Terms of Service")
+    
     # Check if user or username exists
     existing = await db.users.find_one({
         "$or": [
@@ -255,6 +291,9 @@ async def signup(user: User):
             raise HTTPException(status_code=400, detail="Email already registered")
         else:
             raise HTTPException(status_code=400, detail="Username already taken")
+    
+    # Set terms agreed timestamp
+    user.termsAgreedAt = datetime.utcnow()
     
     # Generate AI personality texts
     user.personalityText = await generate_ai_text(
