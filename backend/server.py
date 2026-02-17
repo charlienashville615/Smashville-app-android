@@ -36,17 +36,50 @@ class User(BaseModel):
     id: Optional[str] = None
     email: str
     password: str
+    username: str  # Unique username
     displayName: str
+    age: Optional[int] = None
+    gender: Optional[str] = None  # "male", "female", "other"
+    sexualPreference: Optional[str] = None  # "straight", "gay", "bisexual", "other"
+    customPreference: Optional[str] = None  # If "other" selected
+    lookingForTonight: Optional[str] = None  # What they're looking for
     bio: Optional[str] = ""
     photos: List[str] = []  # base64 images
     coverPhoto: Optional[str] = None  # base64 image
     currentVibe: Optional[str] = "just vibing"
+    statusMessage: Optional[str] = ""  # Broadcast status
     personalityText: Optional[str] = ""  # AI-generated
     makeItCountText: Optional[str] = ""  # AI-generated
     isPremium: bool = False
     premiumExpiresAt: Optional[datetime] = None
+    isAdmin: bool = False  # Admin role
     isAI: bool = False
+    isBanned: bool = False
+    isBlocked: bool = False
+    timeoutUntil: Optional[datetime] = None
     emergencyPin: Optional[str] = None  # 4-digit PIN for emergency alert deactivation
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class SupportTicket(BaseModel):
+    id: Optional[str] = None
+    userId: str
+    subject: str
+    message: str
+    email: str
+    status: str = "open"  # "open", "closed"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+class AppSettings(BaseModel):
+    id: Optional[str] = None
+    supportEmail: Optional[str] = None  # Admin configures this
+    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+
+class Flirt(BaseModel):
+    id: Optional[str] = None
+    fromUserId: str
+    toUserId: str
+    venueId: str
+    message: Optional[str] = "sent you a flirt"
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
 class EmergencyContact(BaseModel):
@@ -210,10 +243,18 @@ async def generate_ai_text(prompt: str) -> str:
 
 @api_router.post("/auth/signup")
 async def signup(user: User):
-    # Check if user exists
-    existing = await db.users.find_one({"email": user.email})
+    # Check if user or username exists
+    existing = await db.users.find_one({
+        "$or": [
+            {"email": user.email},
+            {"username": user.username}
+        ]
+    })
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        if existing.get('email') == user.email:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        else:
+            raise HTTPException(status_code=400, detail="Username already taken")
     
     # Generate AI personality texts
     user.personalityText = await generate_ai_text(
@@ -299,27 +340,36 @@ async def get_venue(venue_id: str):
 
 @api_router.post("/checkins")
 async def check_in(checkin: CheckIn):
+    # MANDATORY: Verify GPS if coordinates provided
+    if not checkin.latitude or not checkin.longitude:
+        raise HTTPException(status_code=400, detail="GPS location required for check-in")
+    
+    # Verify user is actually at the venue
+    is_within_range, distance = await verify_gps_location(
+        checkin.latitude, checkin.longitude, checkin.venueId
+    )
+    
+    if not is_within_range:
+        raise HTTPException(
+            status_code=403, 
+            detail=f"You must be at the venue to check in. You are {int(distance)}m away."
+        )
+    
     # Remove any existing check-ins for this user
     await db.checkins.delete_many({"userId": checkin.userId})
     
-    # Verify GPS if coordinates provided
-    verified = False
-    if checkin.latitude and checkin.longitude:
-        is_within_range, distance = await verify_gps_location(
-            checkin.latitude, checkin.longitude, checkin.venueId
-        )
-        verified = is_within_range
-        
-        if not is_within_range:
-            # Still allow check-in but mark as unverified
-            logging.warning(f"User {checkin.userId} checked in {distance}m away from venue")
-    
     # Create new check-in
     checkin_dict = checkin.dict(exclude={'id'})
-    checkin_dict['verified'] = verified
+    checkin_dict['verified'] = True
     result = await db.checkins.insert_one(checkin_dict)
     checkin_dict['id'] = str(result.inserted_id)
     return serialize_doc(checkin_dict)
+
+@api_router.post("/checkins/{user_id}/checkout")
+async def checkout(user_id: str):
+    """Manual checkout from venue"""
+    result = await db.checkins.delete_many({"userId": user_id})
+    return {"message": "Checked out successfully", "deleted": result.deleted_count}
 
 @api_router.get("/checkins/user/{user_id}")
 async def get_user_checkin(user_id: str):
@@ -345,11 +395,52 @@ async def get_venue_checkins(venue_id: str):
     return [serialize_doc(u) for u in users]
 
 @api_router.delete("/checkins/{checkin_id}")
-async def checkout(checkin_id: str):
+async def delete_checkin(checkin_id: str):
     result = await db.checkins.delete_one({"_id": ObjectId(checkin_id)})
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Check-in not found")
     return {"message": "Checked out successfully"}
+
+# =============== FLIRT ENDPOINTS ===============
+
+@api_router.post("/flirts")
+async def send_flirt(flirt: Flirt):
+    """Send a flirt to another user at the same venue"""
+    # Check both users are at the same venue
+    from_checkin = await db.checkins.find_one({
+        "userId": flirt.fromUserId,
+        "venueId": flirt.venueId,
+        "expiresAt": {"$gt": datetime.utcnow()}
+    })
+    to_checkin = await db.checkins.find_one({
+        "userId": flirt.toUserId,
+        "venueId": flirt.venueId,
+        "expiresAt": {"$gt": datetime.utcnow()}
+    })
+    
+    if not from_checkin or not to_checkin:
+        raise HTTPException(status_code=400, detail="Both users must be checked in to the same venue")
+    
+    flirt_dict = flirt.dict(exclude={'id'})
+    result = await db.flirts.insert_one(flirt_dict)
+    flirt_dict['id'] = str(result.inserted_id)
+    return serialize_doc(flirt_dict)
+
+@api_router.get("/flirts/user/{user_id}")
+async def get_user_flirts(user_id: str):
+    """Get flirts received by user"""
+    flirts = await db.flirts.find({"toUserId": user_id}).sort("createdAt", -1).to_list(100)
+    
+    # Get sender details
+    result_flirts = []
+    for flirt in flirts:
+        sender = await db.users.find_one({"_id": ObjectId(flirt['fromUserId'])})
+        if sender:
+            flirt_data = serialize_doc(flirt)
+            flirt_data['sender'] = serialize_doc(sender)
+            result_flirts.append(flirt_data)
+    
+    return result_flirts
 
 # =============== SWIPE & MATCH ENDPOINTS ===============
 
