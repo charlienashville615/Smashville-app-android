@@ -251,7 +251,7 @@ class SmashvilleAPITester:
         
         try:
             response = requests.post(f"{self.base_url}/venues", json=new_venue_data)
-            if response.status_code == 201:
+            if response.status_code == 200:  # Backend returns 200, not 201
                 venue_data = response.json()
                 if "id" in venue_data:
                     self.created_venues.append(venue_data["id"])
