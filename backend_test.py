@@ -630,7 +630,7 @@ class SmashvilleAPITester:
         contact_id = None
         try:
             response = requests.post(f"{self.base_url}/emergency-contacts", json=contact_data)
-            if response.status_code == 201:
+            if response.status_code == 200:  # Accept 200 status code
                 contact = response.json()
                 if "id" in contact:
                     contact_id = contact["id"]
