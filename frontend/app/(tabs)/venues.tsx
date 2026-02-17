@@ -124,7 +124,7 @@ export default function Venues() {
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>🤷</Text>
           <Text style={styles.emptyText}>No venues yet.</Text>
-          <Text style={styles.emptySubtext}>Your mom's basement doesn't count.</Text>
+          <Text style={styles.emptySubtext}>Pull up, Nashville's waiting.</Text>
         </View>
       ) : (
         <FlatList
