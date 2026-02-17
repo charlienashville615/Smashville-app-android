@@ -345,11 +345,12 @@ class SmashvilleAPITester:
             return
         
         # Create a second user for swipe testing
+        timestamp2 = str(int(time.time()) + 1)  # Different timestamp to avoid collision
         signup_data = {
-            "email": "testuser2@test.com",
+            "email": f"testuser{timestamp2}@test.com",
             "password": "pass123",
             "displayName": "Test User 2",
-            "username": "testuser2",
+            "username": f"testuser{timestamp2}",
             "agreedToTerms": True
         }
         
