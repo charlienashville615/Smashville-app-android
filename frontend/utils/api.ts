@@ -51,6 +51,21 @@ export const sendGift = (data: any) => api.post('/gifts/send', data);
 // Admin
 export const createAIUser = (data: any) => api.post('/admin/ai-user', data);
 export const getAIUsers = () => api.get('/admin/ai-users');
+export const getAllUsers = (adminId: string) => api.get('/admin/all-users', { params: { admin_id: adminId } });
+export const makeAdmin = (adminId: string, targetUserId: string) => api.post('/admin/make-admin', { admin_id: adminId, target_user_id: targetUserId });
+export const banUser = (adminId: string, targetUserId: string, ban: boolean) => api.post('/admin/ban-user', { admin_id: adminId, target_user_id: targetUserId, ban });
+export const blockUser = (adminId: string, targetUserId: string, block: boolean) => api.post('/admin/block-user', { admin_id: adminId, target_user_id: targetUserId, block });
+export const timeoutUser = (adminId: string, targetUserId: string, hours: number) => api.post('/admin/timeout-user', { admin_id: adminId, target_user_id: targetUserId, hours });
+
+// Support & Settings
+export const createSupportTicket = (data: any) => api.post('/support/ticket', data);
+export const getSupportTickets = (adminId: string) => api.get('/support/tickets', { params: { admin_id: adminId } });
+export const getSettings = () => api.get('/settings');
+export const updateSettings = (adminId: string, supportEmail: string) => api.put('/settings', { admin_id: adminId, supportEmail });
+
+// Flirts
+export const sendFlirt = (data: any) => api.post('/flirts', data);
+export const getUserFlirts = (userId: string) => api.get(`/flirts/user/${userId}`);
 
 // Emergency Contacts
 export const createEmergencyContact = (data: any) => api.post('/emergency-contacts', data);
