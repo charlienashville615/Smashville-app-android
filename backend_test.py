@@ -112,7 +112,7 @@ class SmashvilleAPITester:
             response = requests.post(f"{self.base_url}/auth/login", json=login_data)
             if response.status_code == 200:
                 user_data = response.json()
-                if "id" in user_data and user_data["email"] == "testuser@test.com":
+                if "id" in user_data and user_data["email"] == f"testuser{timestamp}@test.com":
                     self.log_result("Auth Login", True, f"Successfully logged in user: {user_data['id']}")
                 else:
                     self.log_result("Auth Login", False, "Invalid login response data", response)
