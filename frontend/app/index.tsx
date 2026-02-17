@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 48,
-    fontWeight: 'bold',
+    fontFamily: 'Carrington',
     color: '#00E5FF',
     letterSpacing: 8,
     textShadowColor: 'rgba(0, 229, 255, 0.3)',
