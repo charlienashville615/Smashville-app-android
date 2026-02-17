@@ -48,7 +48,7 @@ async def regenerate_ai_texts(user_id: str):
 
 
 @router.post("/users/{user_id}/status")
-async def update_status(user_id: str, status: str = Body(...)):
+async def update_status(user_id: str, status: str = Body(..., embed=True)):
     """Update user's status message"""
     result = await db.users.update_one(
         {"_id": ObjectId(user_id)},
