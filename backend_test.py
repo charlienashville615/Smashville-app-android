@@ -7,6 +7,7 @@ Testing all endpoints after major refactoring to modular structure
 import requests
 import json
 import sys
+import time
 from datetime import datetime
 
 # Backend URL from frontend env
