@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
+    fontFamily: 'Carrington',
     color: '#00E5FF',
     letterSpacing: 2,
   },
