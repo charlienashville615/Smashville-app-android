@@ -61,7 +61,7 @@ class SmashvilleAPITester:
         
         try:
             response = requests.post(f"{self.base_url}/auth/signup", json=signup_data)
-            if response.status_code == 201:
+            if response.status_code == 200:  # Backend returns 200, not 201
                 user_data = response.json()
                 if "id" in user_data:
                     self.created_users.append(user_data["id"])
