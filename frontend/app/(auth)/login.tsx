@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 36,
-    fontWeight: 'bold',
+    fontFamily: 'Carrington',
     color: '#00E5FF',
     letterSpacing: 3,
     marginBottom: 8,
