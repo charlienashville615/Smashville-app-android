@@ -249,7 +249,7 @@ backend:
     file: "backend/routers/auth.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -257,6 +257,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored from monolithic server.py to routers/auth.py. Verified with curl - signup and login both work."
+      - working: true
+        agent: "testing"
+        comment: "Comprehensive testing completed. Signup with validation (email/username duplicate check, terms agreement) working correctly. Login with valid credentials working. AI personality text generation integrated. Returns 200 status code."
 
   - task: "AI Personality Generation"
     implemented: true
@@ -264,7 +267,7 @@ backend:
     file: "backend/helpers.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -272,6 +275,9 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to helpers.py. AI text generation working - confirmed via signup endpoint."
+      - working: true
+        agent: "testing"
+        comment: "AI text generation working perfectly. Regenerate AI texts endpoint functional, generating both personalityText and makeItCountText. AI status suggestions providing 5 unique suggestions per request."
 
   - task: "Venues API"
     implemented: true
@@ -279,7 +285,7 @@ backend:
     file: "backend/routers/venues.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -287,6 +293,21 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to routers/venues.py. Returns 32 venues correctly."
+      - working: true
+        agent: "testing"
+        comment: "All venue endpoints working. GET /api/venues returning 32+ venues (includes test-created venues), GET single venue by ID working, POST venue creation successful with proper validation."
+
+  - task: "User Profile Management API"
+    implemented: true
+    working: true
+    file: "backend/routers/users.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "Complete user profile management working. GET user by ID, PUT profile updates, POST regenerate AI texts, POST status updates, POST emergency PIN setting all functional. AI status suggestions endpoint working correctly."
 
   - task: "Check-in System API"
     implemented: true
@@ -294,7 +315,7 @@ backend:
     file: "backend/routers/checkins.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -302,14 +323,17 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to routers/checkins.py. GPS verification logic in helpers.py."
+      - working: true
+        agent: "testing"
+        comment: "Check-in system fully functional. POST check-in with GPS coordinates working, GET user active check-in working, GET venue check-ins working, POST checkout working. GPS verification integrated."
 
   - task: "Swipe and Match API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/swipes.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -317,6 +341,21 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to routers/swipes.py. Fixed duplicate $or query in get_user_matches."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL: Swipe endpoint returning 200 status but not properly creating swipes. Match detection logic not working correctly. GET user matches endpoint functional."
+
+  - task: "Messages API"
+    implemented: true
+    working: "NA"
+    file: "backend/routers/messages.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "testing"
+        comment: "Unable to test messaging due to swipe/match creation issues. Endpoint structure appears correct but requires functional match system for complete testing."
 
   - task: "Events and RSVP API"
     implemented: true
@@ -324,7 +363,7 @@ backend:
     file: "backend/routers/events.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -332,14 +371,17 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to routers/events.py."
+      - working: true
+        agent: "testing"
+        comment: "Events system fully functional. GET all events returning 5 events, POST RSVP creation working, GET user RSVPs working. Event management complete."
 
   - task: "Gifts API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/gifts.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
@@ -347,54 +389,69 @@ backend:
       - working: true
         agent: "main"
         comment: "Refactored to routers/gifts.py."
+      - working: false
+        agent: "testing"
+        comment: "Minor: GET gifts working (returning 12 gifts correctly), but POST gift sending returning 422 error. Likely validation issue with request format."
 
   - task: "Admin API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/admin.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Refactored to routers/admin.py. Includes AI user management, make-admin, ban, block, timeout, list all users."
+      - working: false
+        agent: "testing"
+        comment: "Minor: GET AI users working (returning 9 AI users), but POST create AI user returning 422 error. Admin privileged endpoints require admin user setup for full testing."
 
   - task: "Safety & Emergency API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/safety.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Refactored to routers/safety.py. Emergency contacts CRUD, alert activation/deactivation, location updates."
+      - working: false
+        agent: "testing"
+        comment: "Minor: Emergency contacts CRUD working (create, get, update, delete), alert activation working, GET active alert working. However, location updates and alert deactivation returning 422 errors - likely field validation issues."
 
   - task: "Support & Settings API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/support.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Refactored to routers/support.py. Support tickets, app settings, admin-only access."
+      - working: false
+        agent: "testing"
+        comment: "Minor: GET settings working correctly. POST support ticket creation returning 422 error - field validation issue."
 
   - task: "Flirt API"
     implemented: true
-    working: true
+    working: false
     file: "backend/routers/flirts.py"
-    stuck_count: 0
+    stuck_count: 1
     priority: "medium"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Refactored to routers/flirts.py. Send flirts and get received flirts."
+      - working: false
+        agent: "testing"
+        comment: "Minor: GET received flirts working. POST send flirt returning 422 error - requires both users to be checked in at same venue, likely validation issue."
 
   - task: "Stripe Payments API"
     implemented: true
