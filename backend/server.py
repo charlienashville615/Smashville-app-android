@@ -9,7 +9,8 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime, timedelta
-from emergentintegrations import OpenAIClient
+from emergentintegrations.llm.chat import LlmChat, UserMessage
+import uuid
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -19,9 +20,8 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Emergent LLM Client
+# Emergent LLM Key
 EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
-llm_client = OpenAIClient(api_key=EMERGENT_LLM_KEY) if EMERGENT_LLM_KEY else None
 
 # Create the main app
 app = FastAPI()
@@ -127,16 +127,19 @@ def serialize_doc(doc):
 
 async def generate_ai_text(prompt: str) -> str:
     """Generate AI text using Emergent LLM"""
-    if not llm_client:
+    if not EMERGENT_LLM_KEY:
         return "Your vibe is immaculate"
     
     try:
-        response = llm_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=100
-        )
-        return response.choices[0].message.content.strip()
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=str(uuid.uuid4()),
+            system_message="You are a witty, sarcastic dating app copywriter."
+        ).with_model("openai", "gpt-4o")
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        return response.strip()
     except Exception as e:
         logging.error(f"AI generation error: {e}")
         return "Too cool for a bio"
