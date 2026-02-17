@@ -332,7 +332,7 @@ metadata:
   version: "1.0"
   test_sequence: 1
   run_ui: true
-  app_url: "https://venue-match-13.preview.emergentagent.com"
+  app_url: "https://swipe-venue-test.preview.emergentagent.com"
 
 test_plan:
   current_focus:
@@ -365,7 +365,7 @@ agent_communication:
       - Venue Detail: See users at venues
       
       Test credentials: Can create new users via signup
-      App URL: https://venue-match-13.preview.emergentagent.com
+      App URL: https://swipe-venue-test.preview.emergentagent.com
       
       Please test on mobile dimensions (390x844) and verify the complete user flow from signup to matching.
   - agent: "testing"
