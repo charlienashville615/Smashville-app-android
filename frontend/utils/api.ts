@@ -51,3 +51,18 @@ export const sendGift = (data: any) => api.post('/gifts/send', data);
 // Admin
 export const createAIUser = (data: any) => api.post('/admin/ai-user', data);
 export const getAIUsers = () => api.get('/admin/ai-users');
+
+// Emergency Contacts
+export const createEmergencyContact = (data: any) => api.post('/emergency-contacts', data);
+export const getUserEmergencyContacts = (userId: string) => api.get(`/emergency-contacts/user/${userId}`);
+export const updateEmergencyContact = (contactId: string, updates: any) => api.put(`/emergency-contacts/${contactId}`, updates);
+export const deleteEmergencyContact = (contactId: string) => api.delete(`/emergency-contacts/${contactId}`);
+
+// Emergency Alerts
+export const activateEmergencyAlert = (data: any) => api.post('/emergency-alert/activate', data);
+export const updateEmergencyLocation = (data: any) => api.post('/emergency-alert/update-location', data);
+export const deactivateEmergencyAlert = (data: any) => api.post('/emergency-alert/deactivate', data);
+export const getActiveAlert = (userId: string) => api.get(`/emergency-alert/active/${userId}`);
+
+// Emergency PIN
+export const setEmergencyPin = (userId: string, pin: string) => api.post(`/users/${userId}/emergency-pin`, { pin });
