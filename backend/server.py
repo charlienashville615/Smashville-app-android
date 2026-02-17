@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Body
+from fastapi import FastAPI, APIRouter, HTTPException, Body, Request
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -11,6 +11,9 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 import uuid
+
+# Import Stripe routes
+from stripe_routes import stripe_router
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -504,8 +507,9 @@ async def get_ai_users():
     ai_users = await db.users.find({"isAI": True}).to_list(200)
     return [serialize_doc(u) for u in ai_users]
 
-# Include router
+# Include routers
 app.include_router(api_router)
+app.include_router(stripe_router, prefix="/api")  # Stripe payment routes
 
 app.add_middleware(
     CORSMiddleware,
