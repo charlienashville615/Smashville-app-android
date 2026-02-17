@@ -246,86 +246,167 @@ backend:
   - task: "User Authentication API"
     implemented: true
     working: true
-    file: "backend/server.py"
+    file: "backend/routers/auth.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "Tested with curl. Signup creates user with AI-generated personality texts. Login returns user data."
+      - working: true
+        agent: "main"
+        comment: "Refactored from monolithic server.py to routers/auth.py. Verified with curl - signup and login both work."
 
   - task: "AI Personality Generation"
     implemented: true
     working: true
-    file: "backend/server.py"
+    file: "backend/helpers.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "Using Emergent LLM (gpt-4o). Generates sarcastic personality texts on signup. Tested successfully."
+      - working: true
+        agent: "main"
+        comment: "Refactored to helpers.py. AI text generation working - confirmed via signup endpoint."
 
   - task: "Venues API"
     implemented: true
     working: true
-    file: "backend/server.py, backend/seed_data.py"
+    file: "backend/routers/venues.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "32 Nashville venues seeded. GET /api/venues returns all venues. Tested with curl."
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/venues.py. Returns 32 venues correctly."
 
   - task: "Check-in System API"
     implemented: true
     working: true
-    file: "backend/server.py"
+    file: "backend/routers/checkins.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
-        comment: "Check-in endpoints implemented. Users can check in to venues, get active check-in, and see users at venues."
+        comment: "Check-in endpoints implemented with GPS verification. Users can check in, checkout, and see users at venues."
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/checkins.py. GPS verification logic in helpers.py."
 
   - task: "Swipe and Match API"
     implemented: true
     working: true
-    file: "backend/server.py"
+    file: "backend/routers/swipes.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "Swipe logic implemented with automatic match detection on mutual right swipes."
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/swipes.py. Fixed duplicate $or query in get_user_matches."
 
   - task: "Events and RSVP API"
     implemented: true
     working: true
-    file: "backend/server.py, backend/seed_data.py"
+    file: "backend/routers/events.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "5 sample events seeded. Events and RSVP endpoints working. Tested with curl."
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/events.py."
 
   - task: "Gifts API"
     implemented: true
     working: true
-    file: "backend/server.py, backend/seed_data.py"
+    file: "backend/routers/gifts.py"
     stuck_count: 0
     priority: "medium"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
       - working: true
         agent: "main"
         comment: "12 gifts (cute and spicy) seeded. Gift sending endpoints implemented."
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/gifts.py."
+
+  - task: "Admin API"
+    implemented: true
+    working: true
+    file: "backend/routers/admin.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/admin.py. Includes AI user management, make-admin, ban, block, timeout, list all users."
+
+  - task: "Safety & Emergency API"
+    implemented: true
+    working: true
+    file: "backend/routers/safety.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/safety.py. Emergency contacts CRUD, alert activation/deactivation, location updates."
+
+  - task: "Support & Settings API"
+    implemented: true
+    working: true
+    file: "backend/routers/support.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/support.py. Support tickets, app settings, admin-only access."
+
+  - task: "Flirt API"
+    implemented: true
+    working: true
+    file: "backend/routers/flirts.py"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Refactored to routers/flirts.py. Send flirts and get received flirts."
+
+  - task: "Stripe Payments API"
+    implemented: true
+    working: true
+    file: "backend/stripe_routes.py"
+    stuck_count: 0
+    priority: "low"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Stripe routes kept in stripe_routes.py. Scaffolding in place - requires real Stripe key for full functionality."
 
 metadata:
   created_by: "main_agent"
