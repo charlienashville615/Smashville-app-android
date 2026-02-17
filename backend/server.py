@@ -709,6 +709,181 @@ async def set_emergency_pin(user_id: str, pin: str = Body(...)):
     
     return {"message": "Emergency PIN set successfully"}
 
+# =============== STATUS UPDATES ENDPOINTS ===============
+
+@api_router.post("/users/{user_id}/status")
+async def update_status(user_id: str, status: str = Body(...)):
+    """Update user's status message"""
+    result = await db.users.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"statusMessage": status}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"message": "Status updated"}
+
+@api_router.get("/status/ai-suggestions")
+async def get_ai_status_suggestions():
+    """Generate AI status message suggestions"""
+    suggestions = []
+    for i in range(5):
+        text = await generate_ai_text(
+            "Write a funny, short status message for a dating app user in Nashville. One sentence max. Be witty and music/Nashville themed."
+        )
+        suggestions.append(text)
+    return {"suggestions": suggestions}
+
+# =============== ADMIN ENDPOINTS ===============
+
+@api_router.post("/admin/make-admin")
+async def make_user_admin(
+    admin_id: str = Body(...),
+    target_user_id: str = Body(...)
+):
+    """Make another user an admin (admin only)"""
+    # Verify requesting user is admin
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"_id": ObjectId(target_user_id)},
+        {"$set": {"isAdmin": True}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": "User is now an admin"}
+
+@api_router.post("/admin/ban-user")
+async def ban_user(
+    admin_id: str = Body(...),
+    target_user_id: str = Body(...),
+    ban: bool = Body(default=True)
+):
+    """Ban or unban a user (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"_id": ObjectId(target_user_id)},
+        {"$set": {"isBanned": ban}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User {'banned' if ban else 'unbanned'}"}
+
+@api_router.post("/admin/block-user")
+async def block_user(
+    admin_id: str = Body(...),
+    target_user_id: str = Body(...),
+    block: bool = Body(default=True)
+):
+    """Block or unblock a user (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.users.update_one(
+        {"_id": ObjectId(target_user_id)},
+        {"$set": {"isBlocked": block}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User {'blocked' if block else 'unblocked'}"}
+
+@api_router.post("/admin/timeout-user")
+async def timeout_user(
+    admin_id: str = Body(...),
+    target_user_id: str = Body(...),
+    hours: int = Body(default=24)
+):
+    """Put user in timeout (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    timeout_until = datetime.utcnow() + timedelta(hours=hours)
+    
+    result = await db.users.update_one(
+        {"_id": ObjectId(target_user_id)},
+        {"$set": {"timeoutUntil": timeout_until}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {"message": f"User in timeout for {hours} hours", "timeout_until": timeout_until.isoformat()}
+
+@api_router.get("/admin/all-users")
+async def get_all_users(admin_id: str):
+    """Get all users for moderation (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    users = await db.users.find().to_list(1000)
+    return [serialize_doc(u) for u in users]
+
+# =============== SUPPORT ENDPOINTS ===============
+
+@api_router.post("/support/ticket")
+async def create_support_ticket(ticket: SupportTicket):
+    """Create a support ticket"""
+    ticket_dict = ticket.dict(exclude={'id'})
+    result = await db.support_tickets.insert_one(ticket_dict)
+    ticket_dict['id'] = str(result.inserted_id)
+    
+    # In production, send email here
+    logging.info(f"Support ticket created: {ticket.subject} from {ticket.email}")
+    
+    return serialize_doc(ticket_dict)
+
+@api_router.get("/support/tickets")
+async def get_support_tickets(admin_id: str):
+    """Get all support tickets (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    tickets = await db.support_tickets.find().sort("createdAt", -1).to_list(200)
+    return [serialize_doc(t) for t in tickets]
+
+@api_router.get("/settings")
+async def get_settings():
+    """Get app settings"""
+    settings = await db.app_settings.find_one()
+    if not settings:
+        # Create default settings
+        default_settings = {
+            "supportEmail": "support@smashville.app",
+            "updatedAt": datetime.utcnow()
+        }
+        result = await db.app_settings.insert_one(default_settings)
+        settings = await db.app_settings.find_one({"_id": result.inserted_id})
+    return serialize_doc(settings)
+
+@api_router.put("/settings")
+async def update_settings(admin_id: str = Body(...), supportEmail: str = Body(...)):
+    """Update app settings (admin only)"""
+    admin = await db.users.find_one({"_id": ObjectId(admin_id)})
+    if not admin or not admin.get('isAdmin'):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    result = await db.app_settings.update_one(
+        {},
+        {"$set": {"supportEmail": supportEmail, "updatedAt": datetime.utcnow()}},
+        upsert=True
+    )
+    
+    return {"message": "Settings updated"}
+
 # Include routers
 app.include_router(api_router)
 app.include_router(stripe_router, prefix="/api")  # Stripe payment routes
