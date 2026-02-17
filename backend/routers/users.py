@@ -72,7 +72,7 @@ async def get_ai_status_suggestions():
 
 
 @router.post("/users/{user_id}/emergency-pin")
-async def set_emergency_pin(user_id: str, pin: str = Body(...)):
+async def set_emergency_pin(user_id: str, pin: str = Body(..., embed=True)):
     """Set or update emergency PIN"""
     if not pin or len(pin) != 4 or not pin.isdigit():
         raise HTTPException(status_code=400, detail="PIN must be 4 digits")
