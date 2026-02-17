@@ -50,7 +50,7 @@ async def get_user_checkin(user_id: str):
 
 
 @router.get("/checkins/venue/{venue_id}")
-async def get_venue_checkins(venue_id: str):
+async def get_venue_checkins(venue_id: str, user_id: str = None):
     checkins = await db.checkins.find({
         "venueId": venue_id,
         "expiresAt": {"$gt": datetime.utcnow()}
@@ -58,7 +58,26 @@ async def get_venue_checkins(venue_id: str):
 
     user_ids = [ObjectId(c['userId']) for c in checkins]
     users = await db.users.find({"_id": {"$in": user_ids}}).to_list(500)
-    return [serialize_doc(u) for u in users]
+
+    # Include AI users in the pool (they roam all venues)
+    ai_users = await db.users.find({"isAI": True, "isBanned": False}).to_list(200)
+
+    # If a requesting user_id is provided, exclude users already swiped on
+    swiped_ids = set()
+    if user_id:
+        existing_swipes = await db.swipes.find({"userId": user_id}).to_list(1000)
+        swiped_ids = {s['targetUserId'] for s in existing_swipes}
+
+    # Combine real checked-in users + AI users, deduplicate, exclude already swiped
+    seen_ids = set()
+    combined = []
+    for u in users + ai_users:
+        uid = str(u.get('_id', u.get('id', '')))
+        if uid not in seen_ids and uid not in swiped_ids:
+            seen_ids.add(uid)
+            combined.append(u)
+
+    return [serialize_doc(u) for u in combined]
 
 
 @router.delete("/checkins/{checkin_id}")
