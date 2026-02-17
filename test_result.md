@@ -109,15 +109,18 @@ user_problem_statement: |
 frontend:
   - task: "Authentication (Login/Signup)"
     implemented: true
-    working: "NA"
+    working: false
     file: "app/(auth)/login.tsx, app/(auth)/signup.tsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
         comment: "Implemented login and signup screens with email/password. Integrated with backend API and AsyncStorage for session management."
+      - working: false
+        agent: "testing"
+        comment: "CRITICAL: Signup form loads perfectly and all fields work correctly, but signup button has UI overlay issue preventing final submission. Login page loads correctly. All form validation working. Minor UI interaction bug blocking user registration."
 
   - task: "Venue Browsing and Check-in"
     implemented: true
