@@ -60,7 +60,7 @@ async def get_venue_checkins(venue_id: str, user_id: str = None):
     users = await db.users.find({"_id": {"$in": user_ids}}).to_list(500)
 
     # Include AI users in the pool (they roam all venues)
-    ai_users = await db.users.find({"isAI": True, "isBanned": False}).to_list(200)
+    ai_users = await db.users.find({"isAI": True, "isBanned": {"$ne": True}}).to_list(200)
 
     # If a requesting user_id is provided, exclude users already swiped on
     swiped_ids = set()
