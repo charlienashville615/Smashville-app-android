@@ -1,49 +1,46 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, FlatList, Switch } from 'react-native';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { createVenue, createEvent, createAIUser, getAIUsers, getVenues, getEvents } from '../utils/api';
+import {
+  createVenue, createEvent, createAIUser, getAIUsers, getVenues, getEvents,
+  getAllUsers, makeAdmin, banUser, blockUser, timeoutUser,
+  getSupportTickets, getSettings, updateSettings,
+} from '../utils/api';
 
-type TabType = 'venues' | 'events' | 'aiUsers';
+type TabType = 'users' | 'venues' | 'events' | 'aiUsers' | 'support' | 'settings';
 
 export default function AdminPanel() {
   const { user } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<TabType>('venues');
-  
-  // Venue form
+  const [activeTab, setActiveTab] = useState<TabType>('users');
+  const [loading, setLoading] = useState(false);
+
+  // Data lists
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [venues, setVenues] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [aiUsers, setAiUsers] = useState<any[]>([]);
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [supportEmail, setSupportEmail] = useState('');
+
+  // Forms
   const [venueName, setVenueName] = useState('');
   const [venueType, setVenueType] = useState('bar');
   const [venueAddress, setVenueAddress] = useState('');
-  const [venueDescription, setVenueDescription] = useState('');
-  
-  // Event form
-  const [eventName, setEventName] = useState('');
-  const [eventVenueId, setEventVenueId] = useState('');
-  const [eventDescription, setEventDescription] = useState('');
-  const [eventType, setEventType] = useState('live music');
-  const [eventDate, setEventDate] = useState('');
-  
-  // AI User form
   const [aiEmail, setAiEmail] = useState('');
   const [aiDisplayName, setAiDisplayName] = useState('');
-  const [aiBio, setAiBio] = useState('');
-  
-  // Lists
-  const [venues, setVenues] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [aiUsers, setAiUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [timeoutHours, setTimeoutHours] = useState('24');
 
-  useEffect(() => {
-    loadData();
-  }, [activeTab]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
+    if (!user) return;
     try {
-      if (activeTab === 'venues') {
+      if (activeTab === 'users') {
+        const res = await getAllUsers(user.id);
+        setAllUsers(res.data);
+      } else if (activeTab === 'venues') {
         const res = await getVenues();
         setVenues(res.data);
       } else if (activeTab === 'events') {
@@ -52,499 +49,281 @@ export default function AdminPanel() {
       } else if (activeTab === 'aiUsers') {
         const res = await getAIUsers();
         setAiUsers(res.data);
+      } else if (activeTab === 'support') {
+        const res = await getSupportTickets(user.id);
+        setTickets(res.data);
+      } else if (activeTab === 'settings') {
+        const res = await getSettings();
+        setSupportEmail(res.data?.supportEmail || '');
       }
-    } catch (error) {
-      console.error('Error loading data:', error);
+    } catch (error: any) {
+      console.error('Admin load error:', error?.response?.data?.detail || error);
     }
+  }, [activeTab, user]);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const handleAction = async (action: string, targetId: string, targetName: string) => {
+    if (!user) return;
+    const actions: { [key: string]: () => Promise<any> } = {
+      'make-admin': () => makeAdmin(user.id, targetId),
+      'ban': () => banUser(user.id, targetId, true),
+      'unban': () => banUser(user.id, targetId, false),
+      'block': () => blockUser(user.id, targetId, true),
+      'unblock': () => blockUser(user.id, targetId, false),
+      'timeout': () => timeoutUser(user.id, targetId, parseInt(timeoutHours) || 24),
+    };
+
+    Alert.alert('Confirm', `${action} ${targetName}?`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Confirm', onPress: async () => {
+          try {
+            await actions[action]();
+            Alert.alert('Success', `${action} applied to ${targetName}`);
+            loadData();
+          } catch (error: any) {
+            Alert.alert('Error', error?.response?.data?.detail || 'Action failed');
+          }
+        }
+      }
+    ]);
   };
 
   const handleCreateVenue = async () => {
-    if (!venueName || !venueAddress) {
-      Alert.alert('Error', 'Please fill in venue name and address');
-      return;
-    }
-
+    if (!venueName || !venueAddress) return Alert.alert('Error', 'Fill in name and address');
     setLoading(true);
     try {
-      await createVenue({
-        name: venueName,
-        type: venueType,
-        address: venueAddress,
-        description: venueDescription,
-        city: 'Nashville',
-        state: 'TN',
-        closingTime: '02:00',
-      });
+      await createVenue({ name: venueName, type: venueType, address: venueAddress, city: 'Nashville', state: 'TN' });
       Alert.alert('Success', 'Venue created!');
-      setVenueName('');
-      setVenueAddress('');
-      setVenueDescription('');
+      setVenueName(''); setVenueAddress('');
       loadData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create venue');
-    } finally {
-      setLoading(false);
-    }
+    } catch { Alert.alert('Error', 'Failed'); }
+    finally { setLoading(false); }
   };
 
-  const handleCreateEvent = async () => {
-    if (!eventName || !eventVenueId || !eventDate) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
-
+  const handleCreateAI = async () => {
+    if (!aiEmail || !aiDisplayName) return Alert.alert('Error', 'Fill in email and name');
     setLoading(true);
     try {
-      await createEvent({
-        venueId: eventVenueId,
-        name: eventName,
-        description: eventDescription,
-        eventDate: new Date(eventDate).toISOString(),
-        eventType,
-      });
-      Alert.alert('Success', 'Event created!');
-      setEventName('');
-      setEventDescription('');
-      setEventVenueId('');
-      setEventDate('');
+      await createAIUser({ email: aiEmail, displayName: aiDisplayName });
+      Alert.alert('Success', 'AI user created!');
+      setAiEmail(''); setAiDisplayName('');
       loadData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create event');
-    } finally {
-      setLoading(false);
-    }
+    } catch { Alert.alert('Error', 'Failed'); }
+    finally { setLoading(false); }
   };
 
-  const handleCreateAIUser = async () => {
-    if (!aiEmail || !aiDisplayName) {
-      Alert.alert('Error', 'Please fill in email and display name');
-      return;
-    }
-
-    setLoading(true);
+  const handleSaveSettings = async () => {
+    if (!user) return;
     try {
-      await createAIUser({
-        email: aiEmail,
-        displayName: aiDisplayName,
-        bio: aiBio,
-      });
-      Alert.alert('Success', 'AI user created with generated personality!');
-      setAiEmail('');
-      setAiDisplayName('');
-      setAiBio('');
-      loadData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create AI user');
-    } finally {
-      setLoading(false);
+      await updateSettings(user.id, supportEmail);
+      Alert.alert('Success', 'Settings saved!');
+    } catch (error: any) {
+      Alert.alert('Error', error?.response?.data?.detail || 'Failed');
     }
   };
 
-  const renderVenueForm = () => (
-    <View style={styles.form}>
-      <Text style={styles.formTitle}>Create New Venue</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Venue Name"
-        placeholderTextColor="#666"
-        value={venueName}
-        onChangeText={setVenueName}
-      />
-
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.typeButton, venueType === 'bar' && styles.typeButtonActive]}
-          onPress={() => setVenueType('bar')}
-        >
-          <Text style={[styles.typeButtonText, venueType === 'bar' && styles.typeButtonTextActive]}>Bar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeButton, venueType === 'club' && styles.typeButtonActive]}
-          onPress={() => setVenueType('club')}
-        >
-          <Text style={[styles.typeButtonText, venueType === 'club' && styles.typeButtonTextActive]}>Club</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeButton, venueType === 'venue' && styles.typeButtonActive]}
-          onPress={() => setVenueType('venue')}
-        >
-          <Text style={[styles.typeButtonText, venueType === 'venue' && styles.typeButtonTextActive]}>Venue</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Address"
-        placeholderTextColor="#666"
-        value={venueAddress}
-        onChangeText={setVenueAddress}
-      />
-
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Description"
-        placeholderTextColor="#666"
-        value={venueDescription}
-        onChangeText={setVenueDescription}
-        multiline
-        numberOfLines={3}
-      />
-
-      <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-        onPress={handleCreateVenue}
-        disabled={loading}
-      >
-        <Text style={styles.submitButtonText}>{loading ? 'CREATING...' : 'CREATE VENUE'}</Text>
-      </TouchableOpacity>
-
-      <View style={styles.list}>
-        <Text style={styles.listTitle}>Existing Venues ({venues.length})</Text>
-        {venues.slice(0, 5).map((venue: any) => (
-          <View key={venue.id} style={styles.listItem}>
-            <Text style={styles.listItemTitle}>{venue.name}</Text>
-            <Text style={styles.listItemSubtitle}>{venue.type} • {venue.address}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderEventForm = () => (
-    <View style={styles.form}>
-      <Text style={styles.formTitle}>Create New Event</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Event Name"
-        placeholderTextColor="#666"
-        value={eventName}
-        onChangeText={setEventName}
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Venue ID"
-        placeholderTextColor="#666"
-        value={eventVenueId}
-        onChangeText={setEventVenueId}
-      />
-
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.typeButton, eventType === 'live music' && styles.typeButtonActive]}
-          onPress={() => setEventType('live music')}
-        >
-          <Text style={[styles.typeButtonText, eventType === 'live music' && styles.typeButtonTextActive]}>Live Music</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeButton, eventType === 'party' && styles.typeButtonActive]}
-          onPress={() => setEventType('party')}
-        >
-          <Text style={[styles.typeButtonText, eventType === 'party' && styles.typeButtonTextActive]}>Party</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.typeButton, eventType === 'special' && styles.typeButtonActive]}
-          onPress={() => setEventType('special')}
-        >
-          <Text style={[styles.typeButtonText, eventType === 'special' && styles.typeButtonTextActive]}>Special</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.input}
-        placeholder="Event Date (YYYY-MM-DD HH:MM)"
-        placeholderTextColor="#666"
-        value={eventDate}
-        onChangeText={setEventDate}
-      />
-
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Description"
-        placeholderTextColor="#666"
-        value={eventDescription}
-        onChangeText={setEventDescription}
-        multiline
-        numberOfLines={3}
-      />
-
-      <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-        onPress={handleCreateEvent}
-        disabled={loading}
-      >
-        <Text style={styles.submitButtonText}>{loading ? 'CREATING...' : 'CREATE EVENT'}</Text>
-      </TouchableOpacity>
-
-      <View style={styles.list}>
-        <Text style={styles.listTitle}>Existing Events ({events.length})</Text>
-        {events.slice(0, 5).map((event: any) => (
-          <View key={event.id} style={styles.listItem}>
-            <Text style={styles.listItemTitle}>{event.name}</Text>
-            <Text style={styles.listItemSubtitle}>{event.eventType} • {new Date(event.eventDate).toLocaleDateString()}</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-
-  const renderAIUserForm = () => (
-    <View style={styles.form}>
-      <Text style={styles.formTitle}>Create AI Test User</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#666"
-        value={aiEmail}
-        onChangeText={setAiEmail}
-        autoCapitalize="none"
-      />
-
-      <TextInput
-        style={styles.input}
-        placeholder="Display Name"
-        placeholderTextColor="#666"
-        value={aiDisplayName}
-        onChangeText={setAiDisplayName}
-      />
-
-      <TextInput
-        style={[styles.input, styles.textArea]}
-        placeholder="Bio (optional)"
-        placeholderTextColor="#666"
-        value={aiBio}
-        onChangeText={setAiBio}
-        multiline
-        numberOfLines={3}
-      />
-
-      <TouchableOpacity
-        style={[styles.submitButton, loading && styles.submitButtonDisabled]}
-        onPress={handleCreateAIUser}
-        disabled={loading}
-      >
-        <Text style={styles.submitButtonText}>{loading ? 'CREATING...' : 'CREATE AI USER'}</Text>
-      </TouchableOpacity>
-
-      <View style={styles.list}>
-        <Text style={styles.listTitle}>AI Users ({aiUsers.length})</Text>
-        {aiUsers.map((user: any) => (
-          <View key={user.id} style={styles.listItem}>
-            <View style={styles.listItemHeader}>
-              <Text style={styles.listItemTitle}>{user.displayName}</Text>
-              {user.isPremium && <Ionicons name="star" size={16} color="#FFD700" />}
-            </View>
-            <Text style={styles.listItemSubtitle}>{user.email}</Text>
-            <Text style={styles.aiPersonality}>"{user.personalityText}"</Text>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
+  const TABS: { key: TabType; icon: string; label: string }[] = [
+    { key: 'users', icon: 'people', label: 'Users' },
+    { key: 'venues', icon: 'location', label: 'Venues' },
+    { key: 'aiUsers', icon: 'sparkles', label: 'AI' },
+    { key: 'support', icon: 'mail', label: 'Tickets' },
+    { key: 'settings', icon: 'settings', label: 'Config' },
+  ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={24} color="#00E5FF" />
         </TouchableOpacity>
-        <Text style={styles.title}>⚡ ADMIN PANEL</Text>
-        <View style={styles.headerRight} />
+        <Text style={styles.headerTitle}>ADMIN PANEL</Text>
+        <View style={{ width: 32 }} />
       </View>
 
-      <View style={styles.tabs}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'venues' && styles.tabActive]}
-          onPress={() => setActiveTab('venues')}
-        >
-          <Ionicons name="location" size={20} color={activeTab === 'venues' ? '#00E5FF' : '#666'} />
-          <Text style={[styles.tabText, activeTab === 'venues' && styles.tabTextActive]}>Venues</Text>
-        </TouchableOpacity>
+      {/* Tabs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabBar}>
+        {TABS.map((tab) => (
+          <TouchableOpacity key={tab.key} style={[styles.tab, activeTab === tab.key && styles.tabActive]} onPress={() => setActiveTab(tab.key)}>
+            <Ionicons name={tab.icon as any} size={18} color={activeTab === tab.key ? '#00E5FF' : '#666'} />
+            <Text style={[styles.tabLabel, activeTab === tab.key && styles.tabLabelActive]}>{tab.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'events' && styles.tabActive]}
-          onPress={() => setActiveTab('events')}
-        >
-          <Ionicons name="calendar" size={20} color={activeTab === 'events' ? '#00E5FF' : '#666'} />
-          <Text style={[styles.tabText, activeTab === 'events' && styles.tabTextActive]}>Events</Text>
-        </TouchableOpacity>
+      <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* ===== USERS TAB ===== */}
+        {activeTab === 'users' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>All Users ({allUsers.length})</Text>
+            <TextInput style={styles.input} placeholder="Timeout hours (default 24)" placeholderTextColor="#666" value={timeoutHours} onChangeText={setTimeoutHours} keyboardType="number-pad" />
+            {allUsers.map((u: any) => (
+              <View key={u.id} style={[styles.userCard, u.isBanned && styles.bannedCard]}>
+                <View style={styles.userInfo}>
+                  <Text style={styles.userName}>{u.displayName} {u.isAI ? '🤖' : ''}</Text>
+                  <Text style={styles.userEmail}>{u.email}</Text>
+                  <View style={styles.badgeRow}>
+                    {u.isAdmin && <View style={styles.badge}><Text style={styles.badgeText}>ADMIN</Text></View>}
+                    {u.isPremium && <View style={[styles.badge, styles.premBadge]}><Text style={styles.badgeText}>PREMIUM</Text></View>}
+                    {u.isBanned && <View style={[styles.badge, styles.banBadge]}><Text style={styles.badgeText}>BANNED</Text></View>}
+                    {u.isBlocked && <View style={[styles.badge, styles.blockBadge]}><Text style={styles.badgeText}>BLOCKED</Text></View>}
+                  </View>
+                </View>
+                {u.id !== user?.id && (
+                  <View style={styles.actionRow}>
+                    {!u.isAdmin && (
+                      <TouchableOpacity style={styles.adminActionBtn} onPress={() => handleAction('make-admin', u.id, u.displayName)}>
+                        <Text style={styles.adminActionText}>👑 Admin</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity style={styles.adminActionBtn} onPress={() => handleAction(u.isBanned ? 'unban' : 'ban', u.id, u.displayName)}>
+                      <Text style={[styles.adminActionText, { color: '#FF4458' }]}>{u.isBanned ? '✅ Unban' : '🚫 Ban'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.adminActionBtn} onPress={() => handleAction(u.isBlocked ? 'unblock' : 'block', u.id, u.displayName)}>
+                      <Text style={[styles.adminActionText, { color: '#FF8C00' }]}>{u.isBlocked ? '✅ Unblock' : '🔒 Block'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.adminActionBtn} onPress={() => handleAction('timeout', u.id, u.displayName)}>
+                      <Text style={[styles.adminActionText, { color: '#FFD700' }]}>⏳ Timeout</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
 
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'aiUsers' && styles.tabActive]}
-          onPress={() => setActiveTab('aiUsers')}
-        >
-          <Ionicons name="people" size={20} color={activeTab === 'aiUsers' ? '#00E5FF' : '#666'} />
-          <Text style={[styles.tabText, activeTab === 'aiUsers' && styles.tabTextActive]}>AI Users</Text>
-        </TouchableOpacity>
-      </View>
+        {/* ===== VENUES TAB ===== */}
+        {activeTab === 'venues' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Create Venue</Text>
+            <TextInput style={styles.input} placeholder="Venue Name" placeholderTextColor="#666" value={venueName} onChangeText={setVenueName} />
+            <View style={styles.chipRow}>
+              {['bar', 'club', 'venue', 'restaurant'].map((t) => (
+                <TouchableOpacity key={t} style={[styles.chip, venueType === t && styles.chipActive]} onPress={() => setVenueType(t)}>
+                  <Text style={[styles.chipText, venueType === t && styles.chipTextActive]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput style={styles.input} placeholder="Address" placeholderTextColor="#666" value={venueAddress} onChangeText={setVenueAddress} />
+            <TouchableOpacity style={styles.submitBtn} onPress={handleCreateVenue} disabled={loading}>
+              <Text style={styles.submitBtnText}>{loading ? 'CREATING...' : 'CREATE VENUE'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.listTitle}>Existing ({venues.length})</Text>
+            {venues.map((v: any) => (
+              <View key={v.id} style={styles.listCard}>
+                <Text style={styles.listCardTitle}>{v.name}</Text>
+                <Text style={styles.listCardSub}>{v.type} • {v.address}</Text>
+              </View>
+            ))}
+          </View>
+        )}
 
-      <ScrollView style={styles.content}>
-        {activeTab === 'venues' && renderVenueForm()}
-        {activeTab === 'events' && renderEventForm()}
-        {activeTab === 'aiUsers' && renderAIUserForm()}
+        {/* ===== AI USERS TAB ===== */}
+        {activeTab === 'aiUsers' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Create AI User</Text>
+            <TextInput style={styles.input} placeholder="Email" placeholderTextColor="#666" value={aiEmail} onChangeText={setAiEmail} autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder="Display Name" placeholderTextColor="#666" value={aiDisplayName} onChangeText={setAiDisplayName} />
+            <TouchableOpacity style={styles.submitBtn} onPress={handleCreateAI} disabled={loading}>
+              <Text style={styles.submitBtnText}>{loading ? 'CREATING...' : 'CREATE AI USER'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.listTitle}>AI Users ({aiUsers.length})</Text>
+            {aiUsers.map((u: any) => (
+              <View key={u.id} style={styles.listCard}>
+                <Text style={styles.listCardTitle}>{u.displayName} 🤖</Text>
+                <Text style={styles.listCardSub}>{u.email}</Text>
+                {u.personalityText && <Text style={styles.aiQuote}>"{u.personalityText}"</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ===== SUPPORT TICKETS TAB ===== */}
+        {activeTab === 'support' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Support Tickets ({tickets.length})</Text>
+            {tickets.length === 0 && <Text style={styles.emptyText}>No tickets yet</Text>}
+            {tickets.map((t: any) => (
+              <View key={t.id} style={styles.listCard}>
+                <View style={styles.ticketHeader}>
+                  <Text style={styles.listCardTitle}>{t.subject}</Text>
+                  <View style={[styles.badge, t.status === 'open' ? styles.openBadge : styles.closedBadge]}>
+                    <Text style={styles.badgeText}>{t.status?.toUpperCase()}</Text>
+                  </View>
+                </View>
+                <Text style={styles.listCardSub}>{t.email}</Text>
+                <Text style={styles.ticketMsg}>{t.message}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* ===== SETTINGS TAB ===== */}
+        {activeTab === 'settings' && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>App Settings</Text>
+            <Text style={styles.fieldLabel}>Support Email</Text>
+            <TextInput style={styles.input} placeholder="support@smashville.app" placeholderTextColor="#666" value={supportEmail} onChangeText={setSupportEmail} autoCapitalize="none" keyboardType="email-address" />
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveSettings}>
+              <Text style={styles.submitBtnText}>SAVE SETTINGS</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000000',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#00E5FF',
-  },
-  backButton: {
-    padding: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#00E5FF',
-    letterSpacing: 2,
-  },
-  headerRight: {
-    width: 32,
-  },
-  tabs: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: '#333',
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    gap: 8,
-  },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: '#00E5FF',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  tabTextActive: {
-    color: '#00E5FF',
-  },
-  content: {
-    flex: 1,
-  },
-  form: {
-    padding: 20,
-  },
-  formTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 20,
-  },
-  input: {
-    backgroundColor: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#333',
-    backgroundColor: '#1A1A1A',
-    alignItems: 'center',
-  },
-  typeButtonActive: {
-    borderColor: '#00E5FF',
-    backgroundColor: 'rgba(0, 229, 255, 0.1)',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '600',
-  },
-  typeButtonTextActive: {
-    color: '#00E5FF',
-  },
-  submitButton: {
-    backgroundColor: '#00E5FF',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    color: '#000000',
-    fontSize: 16,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-  },
-  list: {
-    marginTop: 20,
-  },
-  listTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#00E5FF',
-    marginBottom: 12,
-  },
-  listItem: {
-    backgroundColor: '#1A1A1A',
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-  },
-  listItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  listItemTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  listItemSubtitle: {
-    fontSize: 14,
-    color: '#999',
-  },
-  aiPersonality: {
-    fontSize: 13,
-    color: '#00E5FF',
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
+  container: { flex: 1, backgroundColor: '#000' },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#00E5FF' },
+  backBtn: { padding: 4 },
+  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#00E5FF', letterSpacing: 2 },
+  tabBar: { maxHeight: 50, borderBottomWidth: 1, borderBottomColor: '#333' },
+  tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 6 },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: '#00E5FF' },
+  tabLabel: { fontSize: 13, color: '#666', fontWeight: '600' },
+  tabLabelActive: { color: '#00E5FF' },
+  body: { flex: 1 },
+  section: { padding: 16 },
+  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#FFF', marginBottom: 16 },
+  fieldLabel: { fontSize: 13, color: '#00E5FF', fontWeight: '600', marginBottom: 6 },
+  input: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 8, padding: 14, fontSize: 16, color: '#FFF', marginBottom: 12 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+  chip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#333', backgroundColor: '#1A1A1A' },
+  chipActive: { borderColor: '#00E5FF', backgroundColor: 'rgba(0,229,255,0.15)' },
+  chipText: { fontSize: 14, color: '#999', textTransform: 'capitalize' },
+  chipTextActive: { color: '#00E5FF', fontWeight: '600' },
+  submitBtn: { backgroundColor: '#00E5FF', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginBottom: 20 },
+  submitBtnText: { color: '#000', fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
+  listTitle: { fontSize: 16, fontWeight: 'bold', color: '#00E5FF', marginBottom: 12, marginTop: 8 },
+  listCard: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 10, padding: 14, marginBottom: 10 },
+  listCardTitle: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  listCardSub: { fontSize: 13, color: '#999', marginTop: 2 },
+  aiQuote: { fontSize: 13, color: '#00E5FF', fontStyle: 'italic', marginTop: 6 },
+  emptyText: { color: '#666', fontSize: 16, textAlign: 'center', paddingVertical: 32 },
+
+  // User Card
+  userCard: { backgroundColor: '#1A1A1A', borderWidth: 1, borderColor: '#333', borderRadius: 10, padding: 14, marginBottom: 10 },
+  bannedCard: { borderColor: '#FF4458', backgroundColor: 'rgba(255,68,88,0.05)' },
+  userInfo: { marginBottom: 8 },
+  userName: { fontSize: 16, fontWeight: 'bold', color: '#FFF' },
+  userEmail: { fontSize: 13, color: '#999', marginTop: 2 },
+  badgeRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
+  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: 'rgba(0,229,255,0.15)' },
+  badgeText: { fontSize: 10, fontWeight: 'bold', color: '#00E5FF' },
+  premBadge: { backgroundColor: 'rgba(255,215,0,0.15)' },
+  banBadge: { backgroundColor: 'rgba(255,68,88,0.2)' },
+  blockBadge: { backgroundColor: 'rgba(255,140,0,0.2)' },
+  openBadge: { backgroundColor: 'rgba(0,255,100,0.15)' },
+  closedBadge: { backgroundColor: 'rgba(150,150,150,0.15)' },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  adminActionBtn: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#333', backgroundColor: '#0A0A0A' },
+  adminActionText: { fontSize: 12, fontWeight: '600', color: '#00E5FF' },
+
+  // Tickets
+  ticketHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  ticketMsg: { fontSize: 14, color: '#CCC', marginTop: 8, lineHeight: 20 },
 });
