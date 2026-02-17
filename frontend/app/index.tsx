@@ -33,7 +33,7 @@ export default function Index() {
 
       <View style={styles.content}>
         <Text style={styles.logo}>SMASHVILLE</Text>
-        <Text style={styles.tagline}>"Where your mom's approval is optional"</Text>
+        <Text style={styles.tagline}>"Nashville's worst-kept secret"</Text>
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity
