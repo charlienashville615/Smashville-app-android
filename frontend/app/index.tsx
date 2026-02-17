@@ -1,8 +1,7 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ImageBackground } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { useEffect } from 'react';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export default function Index() {
   const router = useRouter();
@@ -25,38 +24,46 @@ export default function Index() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.logo}>⚡</Text>
-        <Text style={styles.title}>SMASHVILLE</Text>
-        <Text style={styles.subtitle}>Nashville's Electric Dating Scene</Text>
-        
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push('/(auth)/login')}
-          >
-            <Text style={styles.buttonText}>LOGIN</Text>
-          </TouchableOpacity>
+    <ImageBackground 
+      source={require('../assets/nashville-skyline.jpg')} 
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <View style={styles.overlay}>
+        <View style={styles.content}>
+          <Text style={styles.logo}>SMASHVILLE</Text>
+          <Text style={styles.subtitle}>Nashville's Electric Dating Scene</Text>
           
-          <TouchableOpacity
-            style={[styles.button, styles.buttonOutline]}
-            onPress={() => router.push('/(auth)/signup')}
-          >
-            <Text style={[styles.buttonText, styles.buttonTextOutline]}>SIGN UP</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => router.push('/(auth)/login')}
+            >
+              <Text style={styles.buttonText}>LOGIN</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.button, styles.buttonOutline]}
+              onPress={() => router.push('/(auth)/signup')}
+            >
+              <Text style={[styles.buttonText, styles.buttonTextOutline]}>SIGN UP</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.tagline}>"Where your mom's approval is optional"</Text>
         </View>
-        
-        <Text style={styles.tagline}>"Where your mom's approval is optional"</Text>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000000',
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
   },
   content: {
     flex: 1,
@@ -65,21 +72,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   logo: {
-    fontSize: 80,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 48,
+    fontSize: 56,
     fontWeight: 'bold',
     color: '#00E5FF',
-    letterSpacing: 4,
+    letterSpacing: 6,
     marginBottom: 8,
+    textShadowColor: '#000',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 10,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#FFFFFF',
-    marginBottom: 48,
-    opacity: 0.8,
+    marginBottom: 60,
+    opacity: 0.9,
+    textAlign: 'center',
   },
   buttonContainer: {
     width: '100%',
@@ -87,7 +94,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#00E5FF',
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 32,
     borderRadius: 8,
     alignItems: 'center',
@@ -107,13 +114,17 @@ const styles = StyleSheet.create({
     color: '#00E5FF',
   },
   tagline: {
-    marginTop: 32,
+    marginTop: 40,
     color: '#FFFFFF',
     fontSize: 14,
-    opacity: 0.6,
+    opacity: 0.7,
     fontStyle: 'italic',
+    textAlign: 'center',
   },
   loading: {
+    flex: 1,
+    textAlign: 'center',
+    textAlignVertical: 'center',
     color: '#00E5FF',
     fontSize: 18,
   },
