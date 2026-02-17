@@ -243,7 +243,7 @@ class SmashvilleAPITester:
         new_venue_data = {
             "name": "Test Venue API",
             "address": "123 Test Street, Nashville, TN",
-            "category": "Bar",
+            "type": "Bar",  # Changed from "category" to "type"
             "latitude": 36.1627,
             "longitude": -86.7816,
             "description": "Test venue created by API testing"
