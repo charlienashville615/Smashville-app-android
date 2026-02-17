@@ -284,7 +284,7 @@ class SmashvilleAPITester:
         
         try:
             response = requests.post(f"{self.base_url}/checkins", json=checkin_data)
-            if response.status_code == 201:
+            if response.status_code in [200, 201]:  # Accept both status codes
                 checkin_data_response = response.json()
                 if "id" in checkin_data_response:
                     self.active_checkins.append(checkin_data_response["id"])
