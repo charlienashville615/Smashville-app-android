@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   loadingText: { flex: 1, textAlign: 'center', textAlignVertical: 'center', color: '#00E5FF', fontSize: 16 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#00E5FF' },
-  title: { fontSize: 28, fontWeight: 'bold', color: '#00E5FF', letterSpacing: 2 },
+  title: { fontSize: 28, fontFamily: 'Carrington', color: '#00E5FF', letterSpacing: 2 },
   premiumBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,215,0,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 6 },
   premiumText: { color: '#FFD700', fontSize: 12, fontWeight: 'bold' },
   coverContainer: { width: '100%' },
