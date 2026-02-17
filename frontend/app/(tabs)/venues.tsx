@@ -38,13 +38,33 @@ export default function Venues() {
     if (!user) return;
     
     try {
+      // Try to get GPS location; fall back to Nashville center coords
+      let latitude = 36.1627;
+      let longitude = -86.7816;
+      
+      try {
+        const Location = require('expo-location');
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+          latitude = loc.coords.latitude;
+          longitude = loc.coords.longitude;
+        }
+      } catch (locError) {
+        // GPS unavailable (web preview) — use Nashville defaults
+        console.log('GPS unavailable, using default Nashville coordinates');
+      }
+
       await apiCheckIn({
         userId: user.id,
         venueId,
+        latitude,
+        longitude,
       });
       setCheckedInVenue(venueId);
-    } catch (error) {
-      console.error('Error checking in:', error);
+    } catch (error: any) {
+      const msg = error?.response?.data?.detail || 'Check-in failed';
+      console.error('Error checking in:', msg);
     }
   };
 
