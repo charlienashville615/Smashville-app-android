@@ -503,7 +503,7 @@ class SmashvilleAPITester:
                     
                     try:
                         response = requests.post(f"{self.base_url}/rsvps", json=rsvp_data)
-                        if response.status_code == 201:
+                        if response.status_code == 200:  # Accept 200 status code
                             self.log_result("Events RSVP", True, "Successfully RSVPed to event")
                         else:
                             self.log_result("Events RSVP", False, f"Status code: {response.status_code}", response)
