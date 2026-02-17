@@ -34,8 +34,8 @@ export default function Swipe() {
 
       setCheckedInVenue(checkinRes.data.venueId);
       
-      // Get users at the same venue
-      const usersRes = await getVenueCheckins(checkinRes.data.venueId);
+      // Get users at the same venue (includes AI users)
+      const usersRes = await getVenueCheckins(checkinRes.data.venueId, user.id);
       const filteredUsers = usersRes.data.filter((u: any) => u.id !== user.id);
       setUsers(filteredUsers);
 
