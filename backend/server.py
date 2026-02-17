@@ -54,12 +54,18 @@ class Venue(BaseModel):
     state: str = "TN"
     description: Optional[str] = ""
     closingTime: Optional[str] = "02:00"  # 24hr format
+    latitude: Optional[float] = None  # GPS coordinates for verification
+    longitude: Optional[float] = None
+    gpsRadius: Optional[float] = 100.0  # Meters radius for check-in verification
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
 class CheckIn(BaseModel):
     id: Optional[str] = None
     userId: str
     venueId: str
+    latitude: Optional[float] = None  # User's GPS coordinates
+    longitude: Optional[float] = None
+    verified: bool = False  # GPS verification status
     checkedInAt: datetime = Field(default_factory=datetime.utcnow)
     expiresAt: datetime = Field(default_factory=lambda: datetime.utcnow() + timedelta(hours=6))
 
@@ -124,6 +130,38 @@ def serialize_doc(doc):
         doc['id'] = str(doc['_id'])
         del doc['_id']
     return doc
+
+def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Calculate distance between two GPS coordinates in meters using Haversine formula"""
+    from math import radians, sin, cos, sqrt, atan2
+    
+    R = 6371000  # Earth's radius in meters
+    
+    lat1_rad = radians(lat1)
+    lat2_rad = radians(lat2)
+    delta_lat = radians(lat2 - lat1)
+    delta_lon = radians(lon2 - lon1)
+    
+    a = sin(delta_lat/2)**2 + cos(lat1_rad) * cos(lat2_rad) * sin(delta_lon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    
+    return R * c
+
+async def verify_gps_location(user_lat: float, user_lon: float, venue_id: str) -> tuple[bool, float]:
+    """Verify if user's GPS coordinates are within venue's radius"""
+    venue = await db.venues.find_one({"_id": ObjectId(venue_id)})
+    
+    if not venue or not venue.get('latitude') or not venue.get('longitude'):
+        # If venue has no GPS coordinates, allow check-in (backward compatibility)
+        return True, 0.0
+    
+    distance = calculate_distance(
+        user_lat, user_lon,
+        venue['latitude'], venue['longitude']
+    )
+    
+    radius = venue.get('gpsRadius', 100.0)
+    return distance <= radius, distance
 
 async def generate_ai_text(prompt: str) -> str:
     """Generate AI text using Emergent LLM"""
@@ -240,8 +278,21 @@ async def check_in(checkin: CheckIn):
     # Remove any existing check-ins for this user
     await db.checkins.delete_many({"userId": checkin.userId})
     
+    # Verify GPS if coordinates provided
+    verified = False
+    if checkin.latitude and checkin.longitude:
+        is_within_range, distance = await verify_gps_location(
+            checkin.latitude, checkin.longitude, checkin.venueId
+        )
+        verified = is_within_range
+        
+        if not is_within_range:
+            # Still allow check-in but mark as unverified
+            logging.warning(f"User {checkin.userId} checked in {distance}m away from venue")
+    
     # Create new check-in
     checkin_dict = checkin.dict(exclude={'id'})
+    checkin_dict['verified'] = verified
     result = await db.checkins.insert_one(checkin_dict)
     checkin_dict['id'] = str(result.inserted_id)
     return serialize_doc(checkin_dict)
