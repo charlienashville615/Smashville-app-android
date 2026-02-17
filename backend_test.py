@@ -161,19 +161,18 @@ class SmashvilleAPITester:
             response = requests.post(f"{self.base_url}/users/{user_id}/regenerate-ai")
             if response.status_code == 200:
                 ai_data = response.json()
-                if "aiTexts" in ai_data:
+                if "personalityText" in ai_data and "makeItCountText" in ai_data:
                     self.log_result("Users Regenerate AI", True, "Successfully regenerated AI texts")
                 else:
-                    self.log_result("Users Regenerate AI", False, "No aiTexts in response", response)
+                    self.log_result("Users Regenerate AI", False, "Missing AI text fields in response", response)
             else:
                 self.log_result("Users Regenerate AI", False, f"Status code: {response.status_code}", response)
         except Exception as e:
             self.log_result("Users Regenerate AI", False, f"Exception: {str(e)}")
         
         # Test 4: Update status
-        status_data = {"status": "feeling good"}
         try:
-            response = requests.post(f"{self.base_url}/users/{user_id}/status", json=status_data)
+            response = requests.post(f"{self.base_url}/users/{user_id}/status", json="feeling good")
             if response.status_code == 200:
                 self.log_result("Users Update Status", True, "Successfully updated user status")
             else:
@@ -182,9 +181,8 @@ class SmashvilleAPITester:
             self.log_result("Users Update Status", False, f"Exception: {str(e)}")
         
         # Test 5: Set emergency PIN
-        pin_data = {"pin": "1234"}
         try:
-            response = requests.post(f"{self.base_url}/users/{user_id}/emergency-pin", json=pin_data)
+            response = requests.post(f"{self.base_url}/users/{user_id}/emergency-pin", json="1234")
             if response.status_code == 200:
                 self.log_result("Users Set Emergency PIN", True, "Successfully set emergency PIN")
             else:
