@@ -50,12 +50,16 @@ class SmashvilleAPITester:
         """Test Authentication endpoints"""
         print("=== TESTING AUTH ENDPOINTS ===")
         
+        # Use random timestamp to ensure unique emails
+        import time
+        timestamp = str(int(time.time()))
+        
         # Test 1: Signup with valid data
         signup_data = {
-            "email": "testuser@test.com",
+            "email": f"testuser{timestamp}@test.com",
             "password": "pass123",
             "displayName": "Test User",
-            "username": "testuser1", 
+            "username": f"testuser{timestamp}", 
             "agreedToTerms": True
         }
         
