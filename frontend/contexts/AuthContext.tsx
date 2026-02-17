@@ -5,15 +5,23 @@ import { login as apiLogin, signup as apiSignup } from '../utils/api';
 interface User {
   id: string;
   email: string;
+  username?: string;
   displayName: string;
+  age?: number;
+  gender?: string;
+  sexualPreference?: string;
   bio?: string;
   photos: string[];
   coverPhoto?: string;
   currentVibe?: string;
+  vibeCheck?: string;
+  statusMessage?: string;
   personalityText?: string;
   makeItCountText?: string;
   isPremium: boolean;
+  isAdmin: boolean;
   isAI: boolean;
+  agreedToTerms?: boolean;
 }
 
 interface AuthContextType {
