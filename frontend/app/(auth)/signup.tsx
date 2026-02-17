@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingBottom: 40 },
   backButton: { position: 'absolute', top: 10, left: 20, zIndex: 100, padding: 8 },
   content: { flex: 1, paddingHorizontal: 32, paddingTop: 60, paddingBottom: 40 },
-  title: { fontSize: 36, fontWeight: 'bold', color: '#00E5FF', letterSpacing: 3, marginBottom: 8 },
+  title: { fontSize: 36, fontFamily: 'Carrington', color: '#00E5FF', letterSpacing: 3, marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#FFFFFF', opacity: 0.7, marginBottom: 24 },
   form: { gap: 14 },
   label: { fontSize: 13, color: '#00E5FF', fontWeight: '600', marginTop: 4, marginBottom: -6 },
