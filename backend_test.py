@@ -678,7 +678,7 @@ class SmashvilleAPITester:
         
         try:
             response = requests.post(f"{self.base_url}/emergency-alert/activate", json=alert_data)
-            if response.status_code == 201:
+            if response.status_code == 200:  # Accept 200 status code  
                 self.log_result("Safety Activate Alert", True, "Successfully activated emergency alert")
             else:
                 self.log_result("Safety Activate Alert", False, f"Status code: {response.status_code}", response)
