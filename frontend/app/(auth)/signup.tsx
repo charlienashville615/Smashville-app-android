@@ -98,7 +98,7 @@ export default function Signup() {
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.content}>
             <Text style={styles.title}>JOIN{'\n'}SMASHVILLE</Text>
-            <Text style={styles.subtitle}>Your mom doesn't need to know</Text>
+            <Text style={styles.subtitle}>Swipe right on Nashville</Text>
 
             <View style={styles.form}>
               <TextInput
