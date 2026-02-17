@@ -250,6 +250,14 @@ export default function Profile() {
                 <Text style={styles.actionButtonText}>Regenerate AI Texts</Text>
               </TouchableOpacity>
 
+              <TouchableOpacity
+                style={[styles.actionButton, styles.adminButton]}
+                onPress={() => router.push('/admin')}
+              >
+                <Ionicons name="shield-outline" size={24} color="#FFD700" />
+                <Text style={[styles.actionButtonText, styles.adminButtonText]}>Admin Panel</Text>
+              </TouchableOpacity>
+
               {!user.isPremium && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.premiumButton]}
@@ -402,6 +410,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 215, 0, 0.05)',
   },
   premiumButtonText: {
+    color: '#FFD700',
+  },
+  adminButton: {
+    borderColor: '#FFD700',
+    backgroundColor: 'rgba(255, 215, 0, 0.05)',
+  },
+  adminButtonText: {
     color: '#FFD700',
   },
   logoutButton: {
