@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, borderBottomWidth: 1, borderBottomColor: '#00E5FF' },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#00E5FF', letterSpacing: 2 },
+  headerTitle: { fontSize: 22, fontFamily: 'Carrington', color: '#00E5FF', letterSpacing: 2 },
   tabBar: { maxHeight: 50, borderBottomWidth: 1, borderBottomColor: '#333' },
   tab: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 6 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#00E5FF' },
