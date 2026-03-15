@@ -9,6 +9,17 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+api.interceptors.request.use(async (config) => {
+  const userData = await AsyncStorage.getItem('user');
+  if (userData) {
+    const { token } = JSON.parse(userData);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+// -------------------------------
 
 // Auth
 export const signup = (data: any) => api.post('/auth/signup', data);
